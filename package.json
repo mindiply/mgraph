@@ -1,0 +1,28 @@
+{
+  "name": "mgraph",
+  "version": "0.0.1",
+  "description": "Mergeable graphs",
+  "main": "dist/index.mjs",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://bongione@github.com/mindiply/mgraph.git"
+  },
+  "keywords": [
+    "graphs",
+    "merge"
+  ],
+  "author": "Paolo F. Bongiovanni <paolo.bongiovanni@mindiply.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mindiply/mgraph/issues"
+  },
+  "homepage": "https://github.com/mindiply/mgraph#readme",
+  "dependencies": {},
+  "devDependencies": {
+    "prettier": "^2.8.4",
+    "typescript": "^5.0.2"
+  }
+}
