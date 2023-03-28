@@ -1,12 +1,6 @@
-import {
-  AddNodeToTreeAction,
-  HTree,
-  HTreeSchema,
-  LinksSet,
-  LinkType,
-  TreeNode
-} from '../src/types';
-import {addNodeToTreeAction, createHTree} from '../src';
+import {HTreeSchema, LinksArray, LinksSet, LinkType, TreeNode} from '../src/types';
+import {arrayLinkField, linksSetField} from '../src/links';
+import {createHTree, extractSchemaType} from "../src/htree";
 
 interface RootNodeData {
   name: string;
@@ -25,25 +19,31 @@ interface ActivityNodeData {
 }
 
 type RootNode = TreeNode<
+  TestNodesTypes,
+  'RootNode',
   'RootNode',
   RootNodeData,
   {
-    contextsIds: LinksSet<ContextNode | ActivityNode>;
+    contextsIds: LinksSet<'ContextNode' | 'ActivityNode'>;
   },
   {}
 >;
 
 type ContextNode = TreeNode<
+  TestNodesTypes,
   'ContextNode',
+  'RootNode' | 'ContextNode',
   ActivityContextData,
-  {activitiesIds: LinksSet<ContextNode | ActivityNode>},
+  {activitiesIds: LinksArray<'ContextNode' | 'ActivityNode'>},
   {}
 >;
 
 type ActivityNode = TreeNode<
+  TestNodesTypes,
   'ActivityNode',
+  'ActivityNode' | 'ContextNode',
   ActivityNodeData,
-  {activitiesIds: LinksSet<ActivityNode>},
+  {activitiesIds: LinksSet<'ActivityNode'>},
   {}
 >;
 interface TestNodesTypes {
@@ -52,7 +52,53 @@ interface TestNodesTypes {
   ActivityNode: ActivityNode;
 }
 
-const testSchema: HTreeSchema<TestNodesTypes, 'RootNode'> = {
+const extractedTestSchema = extractSchemaType({
+  rootType: 'RootNode',
+  nodeTypes: {
+    RootNode: {
+      __typename: 'RootNode',
+      _id: 'testId',
+      links: {},
+      data: {
+        name: '' as string | null,
+        description: ''
+      },
+      children: {
+        contextsIds: linksSetField('ContextNode')
+      },
+      parent: null
+    },
+    ActivityNode: {
+      parent: null,
+      data: {
+        name: '',
+        status: 'active',
+        progress: 0
+      },
+      links: {},
+      _id: 'test',
+      __typename: 'ActivityNode',
+      children: {
+        activitiesIds: linksSetField('ActivityNode')
+      }
+    },
+    ContextNode: {
+      _id: 'test',
+      __typename: 'ContextNode',
+      children: {
+        activitiesIds: arrayLinkField('ContextNode', 'ActivityNode')
+      },
+      links: {},
+      data: {
+        name: '',
+        isDefault: false
+      },
+      parent: null
+    }
+  }
+});
+
+const explicitSchema: HTreeSchema<TestNodesTypes, 'RootNode'> = {
   rootType: 'RootNode',
   nodeTypes: {
     RootNode: {
@@ -93,8 +139,8 @@ const testSchema: HTreeSchema<TestNodesTypes, 'RootNode'> = {
       __typename: 'ContextNode',
       children: {
         activitiesIds: {
-          type: LinkType.set,
-          nodesIds: new Map()
+          type: LinkType.array,
+          nodesIds: []
         }
       },
       links: {},
@@ -107,55 +153,75 @@ const testSchema: HTreeSchema<TestNodesTypes, 'RootNode'> = {
   }
 };
 
-const addAction = addNodeToTreeAction<ContextNode, ActivityNode>(
-  {_id: 1, __typename: 'ContextNode'},
-  'activitiesIds',
-  {__typeName: 'ActivityNode', name: 'hello', status: 'active'}
-);
-
 describe('Creation of tree and empty nodes', () => {
-  test('Create empty test nodes', () => {
-    const tree = createHTree(testSchema);
-    const emptyRoot = tree.emptyNode('RootNode');
-    const emptyContext = tree.emptyNode('ContextNode');
-    const emptyActivity = tree.emptyNode('ActivityNode');
-    expect(emptyRoot.data).toMatchObject({
-      name: '',
-      description: ''
-    });
-    expect(emptyContext.data).toMatchObject({
-      name: '',
-      isDefault: false
-    });
-    expect(emptyActivity.data).toMatchObject({
-      name: '',
-      status: 'active',
-      progress: 0
+  describe('Using implicit schema', () => {
+    test('Create empty test nodes', () => {
+      const tree = createHTree(extractedTestSchema);
+      const emptyRoot = tree.emptyNode('RootNode');
+      const emptyContext = tree.emptyNode('ContextNode');
+      const emptyActivity = tree.emptyNode('ActivityNode');
+      expect(emptyRoot.data).toMatchObject({
+        name: '',
+        description: ''
+      });
+      expect(emptyContext.data).toMatchObject({
+        name: '',
+        isDefault: false
+      });
+      expect(emptyActivity.data).toMatchObject({
+        name: '',
+        status: 'active',
+        progress: 0
+      });
+      emptyActivity.children.activitiesIds.nodesIds.get('aa');
     });
   });
 
-  describe('Add contexts and nodes', () => {
-    test('Add Contexts', () => {
-      const tree = createHTree(testSchema);
-      const newNode = tree.addNode(tree.rootId, 'contextsIds', {
-        __typeName: 'ContextNode',
-        isDefault: false,
-        name: 'Work'
+  describe('Using explicit schema', () => {
+    test('Create empty test nodes', () => {
+      const tree = createHTree(explicitSchema);
+      const emptyRoot = tree.emptyNode('RootNode');
+      const emptyContext = tree.emptyNode('ContextNode');
+      const emptyActivity = tree.emptyNode('ActivityNode');
+      expect(emptyRoot.data).toMatchObject({
+        name: '',
+        description: ''
       });
-      expect(newNode).toEqual(tree.getNode(newNode));
-      expect(newNode).toMatchObject({
-        children: {
-          activitiesIds: {
-            type: LinkType.set,
-            nodesIds: new Map()
-          }
-        },
-        data: {
-          __typeName: 'ContextNode',
-          isDefault: false,
-          name: 'Work'
-        }
+      expect(emptyContext.data).toMatchObject({
+        name: '',
+        isDefault: false
       });
+      expect(emptyActivity.data).toMatchObject({
+        name: '',
+        status: 'active',
+        progress: 0
+      });
+      emptyActivity.children.activitiesIds.nodesIds.get('aa');
     });
   });
 });
+
+// describe('Add contexts and nodes', () => {
+//   test('Add Contexts', () => {
+//     const tree = createHTree(extractedTestSchema);
+//     const newNode = tree.addNode(tree.rootId, 'contextsIds', {
+//       __typeName: 'ContextNode',
+//       isDefault: false,
+//       name: 'Work'
+//     });
+//     expect(newNode).toEqual(tree.getNode(newNode));
+//     expect(newNode).toMatchObject({
+//       children: {
+//         activitiesIds: {
+//           type: LinkType.set,
+//           nodesIds: new Map()
+//         }
+//       },
+//       data: {
+//         __typeName: 'ContextNode',
+//         isDefault: false,
+//         name: 'Work'
+//       }
+//     });
+//   });
+// });

@@ -17,45 +17,60 @@ export interface IId<T> {
 
 export type TypenameTypeOf<T> = T extends IId<infer S> ? S : never;
 
-export interface SingleLink<C extends IId<any>> {
+export interface SingleLink<LinkedTypename> {
   type: LinkType.single;
-  toNodeId: IId<TypenameTypeOf<C>> | null;
+  toNodeId: IId<LinkedTypename> | null;
 }
 
-export interface LinksArray<C extends IId<any>> {
+export interface LinksArray<LinkedTypename> {
   type: LinkType.array;
-  nodesIds: IId<TypenameTypeOf<C>>[];
+  nodesIds: IId<LinkedTypename>[];
 }
 
 /**
  * A linksSet represents a parent to multiple children link where
  * the order between links is not important, the existence of it is
  */
-export interface LinksSet<C extends IId<any>> {
+export interface LinksSet<LinkedTypename> {
   type: LinkType.set;
 
   /** For a linksSet we create a string representation of the Id **/
-  nodesIds: Map<string, IId<TypenameTypeOf<C>>>;
+  nodesIds: Map<string, IId<LinkedTypename>>;
 }
 
-export type NodeLink<C extends IId<any>> =
-  | SingleLink<C>
-  | LinksSet<C>
-  | LinksArray<C>;
+export type NodeLink<LinkedTypename> =
+  | SingleLink<LinkedTypename>
+  | LinksSet<LinkedTypename>
+  | LinksArray<LinkedTypename>;
+
+export interface ParentToChildLinKField<ParentType, ParentField>
+  extends IId<ParentType> {
+  parentField: ParentField;
+}
 
 export interface TreeNode<
-  NodeType,
+  NodesDef extends Record<
+    keyof NodesDef,
+    TreeNode<any, any, any, any, any, any>
+  >,
+  NodeType extends keyof NodesDef,
+  ParentType extends keyof NodesDef,
   NodeData,
-  ChildrenFields extends Record<any, NodeLink<any>>,
-  LinksFields extends Record<any, NodeLink<any>>
+  ChildrenFields extends Record<any, NodeLink<keyof NodesDef>>,
+  LinksFields extends Record<any, NodeLink<keyof NodesDef>>
 > extends IId<NodeType> {
   data: NodeData;
   children: ChildrenFields;
   links?: LinksFields;
-  parent: null | IId<any>;
+  parent: null | ParentToChildLinKField<
+    ParentType,
+    keyof NodeChildrenOfTreeNode<NodesDef[ParentType]>
+  >;
 }
 
 export type NodeDataOfTreeNode<NodeDef> = NodeDef extends TreeNode<
+  any,
+  any,
   any,
   infer NodeData,
   any,
@@ -65,6 +80,8 @@ export type NodeDataOfTreeNode<NodeDef> = NodeDef extends TreeNode<
   : never;
 
 export type NodeChildrenOfTreeNode<NodeDef> = NodeDef extends TreeNode<
+  any,
+  any,
   any,
   any,
   infer ChildrenFields,
@@ -77,6 +94,8 @@ export type NodeLinksOfTreeNode<NodeDef> = NodeDef extends TreeNode<
   any,
   any,
   any,
+  any,
+  any,
   infer LinksFields
 >
   ? LinksFields
@@ -85,7 +104,7 @@ export type NodeLinksOfTreeNode<NodeDef> = NodeDef extends TreeNode<
 export interface HTreeSchema<
   NodesDef extends Record<
     keyof NodesDef,
-    TreeNode<keyof NodesDef, any, any, any>
+    TreeNode<NodesDef, keyof NodesDef, keyof NodesDef, any, any, any>
   >,
   RootType extends keyof NodesDef = keyof NodesDef
 > {
@@ -94,6 +113,8 @@ export interface HTreeSchema<
 }
 
 export type AllChildrenFields<NodeDef> = NodeDef extends TreeNode<
+  any,
+  any,
   any,
   any,
   infer ChildrenDef,
@@ -105,7 +126,7 @@ export type AllChildrenFields<NodeDef> = NodeDef extends TreeNode<
 export interface HTree<
   NodesDef extends Record<
     keyof NodesDef,
-    TreeNode<keyof NodesDef, any, any, any>
+    TreeNode<NodesDef, keyof NodesDef, keyof NodesDef, any, any, any>
   >,
   R extends keyof NodesDef = keyof NodesDef
 > {
@@ -125,10 +146,10 @@ export interface HTree<
   ) => NodesDef[Type];
 }
 
-export interface AddNodeToTreeAction<
+export interface AddNodeToTreeChange<
   NodesDef extends Record<
     keyof NodesDef,
-    TreeNode<keyof NodesDef, any, any, any>
+    TreeNode<NodesDef, keyof NodesDef, keyof NodesDef, any, any, any>
   >,
   ChildTypename extends keyof NodesDef = keyof NodesDef,
   ParentTypename extends keyof NodesDef = keyof NodesDef
@@ -146,10 +167,10 @@ export interface AddNodeToTreeAction<
   >;
 }
 
-export interface ChangeTreeNodeInfoAction<
+export interface ChangeTreeNodeInfoChange<
   NodesDef extends Record<
     keyof NodesDef,
-    TreeNode<keyof NodesDef, any, any, any>
+    TreeNode<NodesDef, keyof NodesDef, keyof NodesDef, any, any, any>
   >,
   ChildTypename extends keyof NodesDef = keyof NodesDef
 > {
@@ -158,10 +179,10 @@ export interface ChangeTreeNodeInfoAction<
   dataChanges: Partial<NodeDataOfTreeNode<NodesDef[ChildTypename]>>;
 }
 
-export interface DeleteTreeNodeAction<
+export interface DeleteTreeNodeChange<
   NodesDef extends Record<
     keyof NodesDef,
-    TreeNode<keyof NodesDef, any, any, any>
+    TreeNode<NodesDef, keyof NodesDef, keyof NodesDef, any, any, any>
   >,
   ChildTypename extends keyof NodesDef = keyof NodesDef
 > {
@@ -169,10 +190,10 @@ export interface DeleteTreeNodeAction<
   nodeId: IId<ChildTypename>;
 }
 
-export interface MoveTreeNodeAction<
+export interface MoveTreeNodeChange<
   NodesDef extends Record<
     keyof NodesDef,
-    TreeNode<keyof NodesDef, any, any, any>
+    TreeNode<NodesDef, keyof NodesDef, keyof NodesDef, any, any, any>
   >,
   TargetTypename extends keyof NodesDef = keyof NodesDef,
   ParentTypename extends keyof NodesDef = keyof NodesDef
@@ -190,27 +211,37 @@ export interface MoveTreeNodeAction<
 export type HTreeChange<
   NodesDef extends Record<
     keyof NodesDef,
-    TreeNode<keyof NodesDef, any, any, any>
+    TreeNode<NodesDef, keyof NodesDef, keyof NodesDef, any, any, any>
   >,
   TargetTypename extends keyof NodesDef = keyof NodesDef,
   ParentTypename extends keyof NodesDef = keyof NodesDef
 > =
-  | AddNodeToTreeAction<NodesDef, TargetTypename, ParentTypename>
-  | MoveTreeNodeAction<NodesDef, TargetTypename, ParentTypename>
-  | DeleteTreeNodeAction<NodesDef, TargetTypename>
-  | ChangeTreeNodeInfoAction<NodesDef, TargetTypename>;
+  | AddNodeToTreeChange<NodesDef, TargetTypename, ParentTypename>
+  | MoveTreeNodeChange<NodesDef, TargetTypename, ParentTypename>
+  | DeleteTreeNodeChange<NodesDef, TargetTypename>
+  | ChangeTreeNodeInfoChange<NodesDef, TargetTypename>;
 
+/**
+ * A mutable version of a HTree document. Allows to track what changes
+ * have happened since the tree was initialized with the original document.
+ *
+ * It's a lazy mutable data structure, we keep as much of the original object
+ * references as possible
+ *
+ * Should all the changes result in the final graph being deep equal to the original
+ * one, we will return the original document when asked of the current document.
+ */
 export interface HMutableTree<
   NodesDef extends Record<
     keyof NodesDef,
-    TreeNode<keyof NodesDef, any, any, any>
+    TreeNode<NodesDef, keyof NodesDef, keyof NodesDef, any, any, any>
   >,
   R extends keyof NodesDef = keyof NodesDef
 > extends HTree<NodesDef, R> {
   readonly originalTree: HTree<NodesDef, R>;
   readonly updatedTree: HTree<NodesDef, R>;
 
-  readonly changes: HTreeChange<NodesDef>;
+  readonly changes: HTreeChange<NodesDef>[];
 
   applyChanges: <
     TargetTypename extends keyof NodesDef,

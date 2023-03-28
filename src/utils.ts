@@ -1,8 +1,9 @@
 import {IId} from "./types";
-import {nanoid} from "nanoid";
+// import {nanoid} from "nanoid";
 
 export function uuid() {
-  return nanoid();
+  // return nanoid();
+  return `${new Date().getTime()}.${Math.ceil(Math.random() * 10000)}`
 }
 
 export function iidToStr(iid: IId<any>): string {
