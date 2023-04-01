@@ -2,23 +2,23 @@ import {HTreeSchema, LinksArray, LinksSet, LinkType, TreeNode} from '../src/type
 import {arrayLinkField, linksSetField} from '../src/links';
 import {createHTree, extractSchemaType} from "../src/htree";
 
-interface RootNodeData {
+export interface RootNodeData {
   name: string;
   description: string;
 }
 
-interface ActivityContextData {
+export interface ActivityContextData {
   name: string;
   isDefault: boolean;
 }
 
-interface ActivityNodeData {
+export interface ActivityNodeData {
   name: string;
   progress: number;
   status: 'active' | 'snoozed' | 'done';
 }
 
-type RootNode = TreeNode<
+export type RootNode = TreeNode<
   TestNodesTypes,
   'RootNode',
   'RootNode',
@@ -29,7 +29,7 @@ type RootNode = TreeNode<
   {}
 >;
 
-type ContextNode = TreeNode<
+export type ContextNode = TreeNode<
   TestNodesTypes,
   'ContextNode',
   'RootNode' | 'ContextNode',
@@ -38,7 +38,7 @@ type ContextNode = TreeNode<
   {}
 >;
 
-type ActivityNode = TreeNode<
+export type ActivityNode = TreeNode<
   TestNodesTypes,
   'ActivityNode',
   'ActivityNode' | 'ContextNode',
@@ -46,7 +46,7 @@ type ActivityNode = TreeNode<
   {activitiesIds: LinksSet<'ActivityNode'>},
   {}
 >;
-interface TestNodesTypes {
+export interface TestNodesTypes {
   RootNode: RootNode;
   ContextNode: ContextNode;
   ActivityNode: ActivityNode;
@@ -98,7 +98,7 @@ const extractedTestSchema = extractSchemaType({
   }
 });
 
-const explicitSchema: HTreeSchema<TestNodesTypes, 'RootNode'> = {
+export const explicitSchema: HTreeSchema<TestNodesTypes, 'RootNode'> = {
   rootType: 'RootNode',
   nodeTypes: {
     RootNode: {

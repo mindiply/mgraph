@@ -43,9 +43,10 @@ export type NodeLink<LinkedTypename> =
   | LinksSet<LinkedTypename>
   | LinksArray<LinkedTypename>;
 
-export interface ParentToChildLinKField<ParentType, ParentField>
+export interface ParentToChildLinkField<ParentType, ParentField>
   extends IId<ParentType> {
   parentField: ParentField;
+  index?: number;
 }
 
 export interface TreeNode<
@@ -62,7 +63,7 @@ export interface TreeNode<
   data: NodeData;
   children: ChildrenFields;
   links?: LinksFields;
-  parent: null | ParentToChildLinKField<
+  parent: null | ParentToChildLinkField<
     ParentType,
     keyof NodeChildrenOfTreeNode<NodesDef[ParentType]>
   >;
@@ -154,12 +155,12 @@ export interface AddNodeToTreeChange<
   ChildTypename extends keyof NodesDef = keyof NodesDef,
   ParentTypename extends keyof NodesDef = keyof NodesDef
 > {
-  type: 'AddNodeToTree';
+  __typename: 'AddNodeToTree';
   parentNodeIId: IId<ParentTypename>;
   parentPosition:
-    | AllChildrenFields<NodesDef[ChildTypename]>
+    | AllChildrenFields<NodesDef[ParentTypename]>
     | {
-        field: AllChildrenFields<NodesDef[ChildTypename]>;
+        field: AllChildrenFields<NodesDef[ParentTypename]>;
         index: number;
       };
   nodeInfo: {__typeName: ChildTypename; _id?: Id} & Partial<
@@ -174,7 +175,7 @@ export interface ChangeTreeNodeInfoChange<
   >,
   ChildTypename extends keyof NodesDef = keyof NodesDef
 > {
-  type: 'ChangeTreeNodeInfo';
+  __typename: 'ChangeTreeNodeInfo';
   nodeIId: IId<ChildTypename>;
   dataChanges: Partial<NodeDataOfTreeNode<NodesDef[ChildTypename]>>;
 }
@@ -186,8 +187,8 @@ export interface DeleteTreeNodeChange<
   >,
   ChildTypename extends keyof NodesDef = keyof NodesDef
 > {
-  type: 'DeleteTreeNode';
-  nodeId: IId<ChildTypename>;
+  __typename: 'DeleteTreeNode';
+  nodeIId: IId<ChildTypename>;
 }
 
 export interface MoveTreeNodeChange<
@@ -198,6 +199,7 @@ export interface MoveTreeNodeChange<
   TargetTypename extends keyof NodesDef = keyof NodesDef,
   ParentTypename extends keyof NodesDef = keyof NodesDef
 > {
+  __typename: 'MoveTreeNodeChange',
   nodeIId: IId<TargetTypename>;
   parentNodeIId: IId<ParentTypename>;
   parentPosition:
@@ -257,6 +259,6 @@ export interface HMutableTree<
     parentPosition:
       | AllChildrenFields<NodesDef[ParentType]>
       | {field: AllChildrenFields<NodesDef[ParentType]>; index: number},
-    nodeInfo: {__typeName: Type; _id?: Id} & NodeDataOfTreeNode<NodesDef[Type]>
+    nodeInfo: {__typename: Type; _id?: Id} & NodeDataOfTreeNode<NodesDef[Type]>
   ) => NodesDef[Type];
 }

@@ -1,5 +1,5 @@
-import {IId, LinkType, NodeLink, TreeNode} from "./types";
-import {iidToStr, sameIIds} from "./utils";
+import {IId, LinkType, NodeLink, TreeNode} from './types';
+import {iidToStr, sameIIds} from './utils';
 
 interface AddNodeToLinkFieldAction<ParentField, ToNodeType> {
   type: 'AddNodeToLinkField';
@@ -27,9 +27,9 @@ type LinkFieldAction<ParentField, NodeType> =
   | MoveNodeInLinkFieldAction<ParentField, NodeType>;
 
 function nodeLinkReducer<T>(
-  state: NodeLink<IId<T>>,
+  state: NodeLink<T>,
   action: LinkFieldAction<any, T>
-): NodeLink<IId<T>> {
+): NodeLink<T> {
   if (!(action && action.type)) {
     return state;
   }
@@ -143,21 +143,14 @@ function nodeChildrenReducer<
   return state;
 }
 
-
 type TreeNodeAction = LinkFieldAction<any, any>;
-function treeNodeReducer<
-  NodeType,
-  NodeData,
-  ChildrenFields extends Record<any, NodeLink<any>>,
-  LinksFields extends Record<any, NodeLink<any>>
->(
-  state: TreeNode<NodeType, NodeData, ChildrenFields, LinksFields>,
+
+export function treeNodeReducer<T extends TreeNode<any, any, any, any, any, any>>(
+  state: T,
   action: TreeNodeAction
-): TreeNode<NodeType, NodeData, ChildrenFields, LinksFields> {
-  if (!(action && action.type)) {
-    return state;
-  }
-  const updatedChildren = nodeChildrenReducer(state.children, action);
+): T {
+  if (!(action && action.type)) return state;
+  const updatedChildren = nodeChildrenReducer(state.children, action as LinkFieldAction<any, any>);
   if (updatedChildren !== state.children) {
     return Object.assign({}, state, {children: updatedChildren});
   }

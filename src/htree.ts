@@ -9,7 +9,7 @@ import {
   NodeDataOfTreeNode,
   NodeLink,
   NodeLinksOfTreeNode,
-  ParentToChildLinKField,
+  ParentToChildLinkField,
   TreeNode
 } from './types';
 import {iidToStr, uuid} from './utils';
@@ -21,7 +21,14 @@ function isHTree<
   >,
   R extends keyof NodesDef = keyof NodesDef
 >(val: any): val is HTree<NodesDef, R> {
-  return val && val instanceof HTreeImpl;
+  return Boolean(
+    val &&
+    typeof val === 'object' &&
+    val.schema &&
+    val.rootId &&
+    typeof val.getNode === 'function' &&
+    typeof val.emptyNode === 'function'
+  );
 }
 
 function isNodeKeyStrIterator<
@@ -137,69 +144,6 @@ export class HTreeImpl<
     return (
       (this.nodes.get(iidToStr(nodeIId)) as NodesDef[Type] | undefined) || null
     );
-  }
-
-  public addNode<
-    ParentType extends keyof NodesDef,
-    Type extends keyof NodesDef
-  >(
-    parentNode: IId<ParentType>,
-    parentPosition:
-      | AllChildrenFields<NodesDef[ParentType]>
-      | {field: AllChildrenFields<NodesDef[ParentType]>; index: number},
-    nodeInfo: {__typename: Type; _id?: Id} & NodeDataOfTreeNode<NodesDef[Type]>
-  ): NodesDef[Type] {
-    const parent = this.getNode(parentNode);
-    if (!parent) {
-      throw new RangeError('No parent found');
-    }
-    const parentFieldName =
-      typeof parentPosition === 'object'
-        ? parentPosition.field
-        : parentPosition;
-    const parentInIndex =
-      typeof parentPosition === 'object' ? parentPosition.index : -1;
-
-    const {_id, __typename, ...other} = nodeInfo;
-    const newNode = this.emptyNode(nodeInfo.__typename);
-    // @ts-expect-error Unknown field without resolving the interface
-    newNode.data = Object.assign(newNode.data, other) as NodeDataOfTreeNode<
-      NodesDef[Type]
-    >;
-    newNode.parent = {
-      __typename: parentNode.__typename,
-      _id: parentNode._id,
-      parentField: parentFieldName
-    };
-    const newNodeId = {_id: newNode._id, __typename: __typename};
-    const newParent = Object.assign({}, parent, {
-      children: Object.assign({}, parent.children)
-    });
-    const parentField = Object.assign(
-      {},
-      parent.children[parentFieldName]
-    ) as unknown as NodeLink<Type>;
-    if (parentField.type === LinkType.array) {
-      if (parentInIndex < 0 || parentInIndex > parentField.nodesIds.length) {
-        throw new RangeError('Unexpected position in array');
-      }
-      parentField.nodesIds = parentField.nodesIds.slice();
-      if (parentInIndex === parentField.nodesIds.length) {
-        parentField.nodesIds.push(newNodeId);
-      } else if (parentInIndex === 0) {
-        parentField.nodesIds.unshift(newNodeId);
-      } else {
-        parentField.nodesIds.splice(parentInIndex, 0, newNodeId);
-      }
-    } else if (parentField.type === LinkType.set) {
-      parentField.nodesIds.set(iidToStr(newNodeId), newNodeId);
-    } else if (parentField.type === LinkType.single) {
-      parentField.toNodeId = newNodeId;
-    } else {
-      throw new TypeError('Incorrect link type detected');
-    }
-    this.nodes.set(iidToStr(newNode), newNode);
-    return newNode;
   }
 }
 
